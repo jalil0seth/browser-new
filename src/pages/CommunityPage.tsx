@@ -1,22 +1,8 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Users, Play } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Play } from 'lucide-react';
 
-function CommunityPage() {
-  const { id } = useParams();
-
-  // Mock data - in a real app, you'd fetch this based on the ID
-  const communityData = {
-    title: "Mr Addie POD Academy",
-    members: "1.2k",
-    online: "66",
-    admins: "8",
-    price: "$49/month",
-    description: "الأكاديمية رقم 1 في توسيع نطاق في مجال التغذية عبر الطلب. مع نمو تعزيز وتحديد نستهدف أكثر من 1200 طالب",
-    videoUrl: "https://example.com/video",
-    coverImage: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-  };
-
+export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Navigation */}
@@ -28,7 +14,7 @@ function CommunityPage() {
           <div className="flex items-center gap-2">
             <img 
               src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-              alt="Community"
+              alt="Mr Addie POD Academy"
               className="w-8 h-8 rounded-full object-cover"
             />
             <span className="font-semibold text-gray-900">Mr Addie POD Academy</span>
@@ -41,27 +27,30 @@ function CommunityPage() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Community Header */}
+        <h1 className="text-2xl font-bold mb-6">Mr Addie POD Academy</h1>
+
+        {/* Video Section */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
           <div className="relative h-[400px]">
             <img 
-              src={communityData.coverImage} 
-              alt={communityData.title}
+              src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+              alt="Cover"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/30"></div>
             <button className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-sm">
               <Play className="w-8 h-8 text-white" fill="white" />
             </button>
-            <div className="absolute bottom-4 left-4 text-white text-sm">
-              <span className="mr-2">1x</span>
+            <div className="absolute bottom-4 left-4 text-white text-sm flex items-center gap-2">
+              <span>1x</span>
+              <span>•</span>
               <span>15 min</span>
             </div>
           </div>
         </div>
 
         {/* Community Info */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <img 
@@ -70,26 +59,33 @@ function CommunityPage() {
                 className="w-12 h-12 rounded-full object-cover"
               />
               <div>
-                <h1 className="text-xl font-bold">{communityData.title}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                <div className="flex items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{communityData.members}</span>
+                    <span className="font-medium">1.2k</span>
+                    <span className="text-gray-500">Members</span>
                   </div>
-                  <span className="text-green-500">{communityData.online} Online</span>
-                  <span>{communityData.admins} Admins</span>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-green-500">66</span>
+                    <span className="text-gray-500">Online</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">8</span>
+                    <span className="text-gray-500">Admins</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <button className="bg-[#4F46E5] text-white px-8 py-2 rounded-lg hover:bg-[#4338CA] transition-colors">
-              JOIN {communityData.price}
+            <button className="bg-[#F6C549] text-black font-medium px-8 py-2 rounded-lg hover:bg-[#E5B438] transition-colors">
+              JOIN $49/month
             </button>
           </div>
 
           <div className="space-y-6 text-gray-600">
-            <p className="text-right" dir="rtl">{communityData.description}</p>
+            <p className="text-right" dir="rtl">
+              الأكاديمية رقم 1 في توسيع نطاق في مجال التغذية عبر الطلب. مع نمو تعزيز وتحديد نستهدف أكثر من 1200 طالب
+            </p>
             
-            <div className="space-y-4">
+            <div className="space-y-4" dir="rtl">
               <Feature emoji="🎯" text="دورة متقدمة في 8 في مجال العمل عبر الانترنت" />
               <Feature emoji="👨‍💻" text="الوصول الى البث المباشر مع عشرين ربح" />
               <Feature emoji="😎" text="شبكة من الأشخاص ذوي الأفكار المشابهة" />
@@ -104,21 +100,24 @@ function CommunityPage() {
         </div>
 
         {/* Powered by Skool */}
-        <div className="text-center text-sm text-gray-500">
-          powered by <span className="font-bold">skool</span>
+        <div className="text-center text-sm text-gray-500 mt-8">
+          powered by <span className="font-semibold">skool</span>
         </div>
       </div>
     </div>
   );
 }
 
-function Feature({ emoji, text }) {
+interface FeatureProps {
+  emoji: string;
+  text: string;
+}
+
+function Feature({ emoji, text }: FeatureProps) {
   return (
-    <div className="flex items-center gap-3" dir="rtl">
+    <div className="flex items-center gap-3">
       <span className="text-xl">{emoji}</span>
       <span className="text-gray-700">{text}</span>
     </div>
   );
 }
-
-export default CommunityPage;

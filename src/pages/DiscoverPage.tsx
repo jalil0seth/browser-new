@@ -5,10 +5,6 @@ import { useNavigate } from 'react-router-dom';
 function DiscoverPage() {
   const navigate = useNavigate();
 
-  const handleCommunityClick = (id: number) => {
-    navigate(`/community/${id}`);
-  };
-
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Navigation */}
@@ -81,7 +77,7 @@ function DiscoverPage() {
         </div>
 
         {/* Community Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <CommunityCard
             number={1}
             title="Digital Growth Community"
@@ -90,17 +86,19 @@ function DiscoverPage() {
             status="Private"
             price="Paid"
             image="https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-            onClick={() => handleCommunityClick(1)}
+            logo="https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+            onClick={() => navigate('/community/1')}
           />
           <CommunityCard
             number={2}
-            title="Mr Addie POD Academy"
-            description="الأكاديمية رقم 1 في توسيع نطاق في مجال التغذية عبر الطلب. مع نمو تعزيز وتحديد نستهدف أكثر من 1200 طالب"
-            members="1.2k"
+            title="Fit Pro Alpha ( Premium )"
+            description="Community Specifically designed to Fitness coaches, Nutritionists and Dietitian's to Grow to $12,000 in First Year"
+            members="219"
             status="Private"
-            price="$49/month"
+            price="$97/month"
             image="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-            onClick={() => handleCommunityClick(2)}
+            logo="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+            onClick={() => navigate('/community/2')}
           />
           <CommunityCard
             number={3}
@@ -110,7 +108,19 @@ function DiscoverPage() {
             status="Private"
             price="Paid"
             image="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-            onClick={() => handleCommunityClick(3)}
+            logo="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+            onClick={() => navigate('/community/3')}
+          />
+          <CommunityCard
+            number={4}
+            title="Mr Addie POD Academy"
+            description="الأكاديمية رقم 1 في توسيع نطاق في مجال التغذية عبر الطلب. مع نمو تعزيز وتحديد نستهدف أكثر من 1200 طالب"
+            members="1.2k"
+            status="Private"
+            price="$49/month"
+            image="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+            logo="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+            onClick={() => navigate('/community/4')}
           />
         </div>
       </div>
@@ -118,7 +128,19 @@ function DiscoverPage() {
   );
 }
 
-function CommunityCard({ number, title, description, members, status, price, image, onClick }) {
+interface CommunityCardProps {
+  number: number;
+  title: string;
+  description: string;
+  members: string;
+  status: string;
+  price: string;
+  image: string;
+  logo: string;
+  onClick: () => void;
+}
+
+function CommunityCard({ number, title, description, members, status, price, image, onClick }: CommunityCardProps) {
   return (
     <div 
       className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" 
