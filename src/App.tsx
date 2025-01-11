@@ -1,29 +1,34 @@
-import { MantineProvider } from '@mantine/core';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { NichesPage } from './pages/NichesPage';
-import { VideosPage } from './pages/VideosPage';
-import { FavoritesPage } from './pages/FavoritesPage';
-import '@mantine/core/styles.css';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-const queryClient = new QueryClient();
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session } = useAuth();
+  if (!session) return <Navigate to="/login" />;
+  return <>{children}</>;
+};
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MantineProvider>
-        <Router>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<NichesPage />} />
-              <Route path="/videos/:nicheId" element={<VideosPage />} />
-              <Route path="/favorites" element={<FavoritesPage />} />
-            </Routes>
-          </Layout>
-        </Router>
-      </MantineProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+      <Toaster position="top-right" />
+    </AuthProvider>
   );
 }
 

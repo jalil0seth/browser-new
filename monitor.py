@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Load environment variables
 load_dotenv()
-PROJECT_NAME = 'yt-rank'
+PROJECT_NAME = 'browser-new'
 
 class Spinner:
     def __init__(self):

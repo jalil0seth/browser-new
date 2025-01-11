@@ -1,5 +1,5 @@
 {
-  "name": "youtube-tracker",
+  "name": "account-manager",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,14 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mantine/core": "^7.6.1",
-    "@mantine/hooks": "^7.6.1",
-    "@tanstack/react-query": "^5.24.1",
+    "@supabase/supabase-js": "^2.39.7",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.1",
-    "zustand": "^4.5.1"
+    "react-router-dom": "^6.22.2",
+    "react-hot-toast": "^2.4.1",
+    "countries-list": "^3.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
@@ -30,7 +29,6 @@
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
-    "postcss-preset-mantine": "^1.13.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
