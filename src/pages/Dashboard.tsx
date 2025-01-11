@@ -1,26 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, Search, LogOut, Facebook, Twitter, Instagram, 
-  Linkedin, Github, Chrome, Apple, CreditCard, ShoppingCart,
-  ChevronLeft, ChevronRight, Link, Globe, Hash, FileText
-} from 'lucide-react';
+import { Plus, Search, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { countries } from 'countries-list';
+import AccountTable from '../components/AccountTable';
+import AccountModal from '../components/AccountModal';
+import Pagination from '../components/Pagination';
 
-const platformIcons: Record<string, React.ElementType> = {
-  facebook: Facebook,
-  twitter: Twitter,
-  instagram: Instagram,
-  linkedin: Linkedin,
-  github: Github,
-  google: Chrome,
-  apple: Apple,
-  paypal: CreditCard,
-  amazon: ShoppingCart,
-};
+const ITEMS_PER_PAGE = 10;
 
 interface Account {
   id: string;
@@ -35,22 +23,16 @@ interface Account {
   user_data?: any;
 }
 
-const ITEMS_PER_PAGE = 10;
-
-function Dashboard() {
+export default function Dashboard() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newAccount, setNewAccount] = useState<Partial<Account>>({});
+  const [showModal, setShowModal] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState<Partial<Account>>({});
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-
-  const countryOptions = Object.entries(countries).map(([code, country]) => ({
-    value: code,
-    label: country.name,
-  }));
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAccounts();
@@ -72,7 +54,7 @@ function Dashboard() {
 
   const handleAddAccount = async () => {
     try {
-      if (!newAccount.platform || !newAccount.username || !newAccount.password) {
+      if (!currentAccount.platform || !currentAccount.username || !currentAccount.password) {
         throw new Error('Platform, username, and password are required');
       }
 
@@ -83,15 +65,15 @@ function Dashboard() {
       }
 
       const accountData = {
-        platform: newAccount.platform,
-        username: newAccount.username,
-        password: newAccount.password,
-        notes: newAccount.notes || '',
-        country: newAccount.country || null,
-        ip: newAccount.ip || null,
-        status: newAccount.status || 'New',
+        platform: currentAccount.platform,
+        username: currentAccount.username,
+        password: currentAccount.password,
+        notes: currentAccount.notes || '',
+        country: currentAccount.country || null,
+        ip: currentAccount.ip || null,
+        status: currentAccount.status || 'New',
         user_id: user.id,
-        user_data: newAccount.user_data || null
+        user_data: currentAccount.user_data || null
       };
 
       const { data, error } = await supabase
@@ -100,10 +82,7 @@ function Dashboard() {
         .select('*')
         .single();
 
-      if (error) {
-        console.error('Account insertion error:', error);
-        throw new Error('Failed to create account');
-      }
+      if (error) throw error;
 
       if (selectedTags.length > 0) {
         const tagInserts = selectedTags
@@ -118,21 +97,121 @@ function Dashboard() {
             .from('account_tags')
             .insert(tagInserts);
 
-          if (tagError) {
-            console.error('Tag insertion error:', tagError);
-            toast.error('Account created but failed to add tags');
-          }
+          if (tagError) throw tagError;
         }
       }
 
       setAccounts([...accounts, { ...data, tags: selectedTags }]);
-      setShowAddModal(false);
-      setNewAccount({});
+      setShowModal(false);
+      setCurrentAccount({});
       setSelectedTags([]);
       toast.success('Account added successfully');
     } catch (error) {
       console.error('Error adding account:', error);
       toast.error(error instanceof Error ? error.message : 'Error adding account');
+    }
+  };
+
+  const handleEditAccount = async () => {
+    if (!editingId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .update({
+          platform: currentAccount.platform,
+          username: currentAccount.username,
+          password: currentAccount.password,
+          notes: currentAccount.notes,
+          country: currentAccount.country,
+          ip: currentAccount.ip,
+          status: currentAccount.status
+        })
+        .eq('id', editingId)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      // Handle tags update
+      await supabase
+        .from('account_tags')
+        .delete()
+        .eq('account_id', editingId);
+
+      if (selectedTags.length > 0) {
+        const tagInserts = selectedTags
+          .filter(tag => tag)
+          .map(tag => ({
+            account_id: editingId,
+            tag: tag.trim()
+          }));
+
+        if (tagInserts.length > 0) {
+          const { error: tagError } = await supabase
+            .from('account_tags')
+            .insert(tagInserts);
+
+          if (tagError) throw tagError;
+        }
+      }
+
+      setAccounts(accounts.map(acc => 
+        acc.id === editingId 
+          ? { ...data, tags: selectedTags }
+          : acc
+      ));
+      
+      setShowModal(false);
+      setCurrentAccount({});
+      setSelectedTags([]);
+      setEditingId(null);
+      toast.success('Account updated successfully');
+    } catch (error) {
+      console.error('Error updating account:', error);
+      toast.error(error instanceof Error ? error.message : 'Error updating account');
+    }
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!window.confirm('Are you sure you want to delete this account?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', accountId);
+
+      if (error) throw error;
+
+      setAccounts(accounts.filter(acc => acc.id !== accountId));
+      toast.success('Account deleted successfully');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(error instanceof Error ? error.message : 'Error deleting account');
+    }
+  };
+
+  const handleRemoveTag = async (accountId: string, tagToRemove: string) => {
+    try {
+      const { error } = await supabase
+        .from('account_tags')
+        .delete()
+        .eq('account_id', accountId)
+        .eq('tag', tagToRemove);
+
+      if (error) throw error;
+
+      setAccounts(accounts.map(acc => 
+        acc.id === accountId 
+          ? { ...acc, tags: acc.tags?.filter(tag => tag !== tagToRemove) }
+          : acc
+      ));
+
+      toast.success('Tag removed successfully');
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      toast.error(error instanceof Error ? error.message : 'Error removing tag');
     }
   };
 
@@ -159,6 +238,16 @@ function Dashboard() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedAccounts = filteredAccounts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+  const handleEdit = (id: string) => {
+    const account = accounts.find(acc => acc.id === id);
+    if (account) {
+      setCurrentAccount(account);
+      setSelectedTags(account.tags || []);
+      setEditingId(id);
+      setShowModal(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm">
@@ -169,7 +258,12 @@ function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setCurrentAccount({});
+                  setSelectedTags([]);
+                  setEditingId(null);
+                  setShowModal(true);
+                }}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -198,318 +292,46 @@ function Dashboard() {
                 className="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Platform
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Country
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      IP
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tags
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notes
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedAccounts.map((account) => {
-                    const Icon = platformIcons[account.platform.toLowerCase()] || Plus;
-                    return (
-                      <tr key={account.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                              <Icon className="h-6 w-6 text-gray-400" />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {account.platform}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{account.username}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {account.status || 'New'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {account.country && countries[account.country]?.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {account.ip}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-wrap gap-1">
-                            {account.tags?.map((tag) => (
-                              <span
-                                key={tag}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {account.notes}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <AccountTable
+              accounts={paginatedAccounts}
+              onEdit={handleEdit}
+              onDelete={handleDeleteAccount}
+              onRemoveTag={handleRemoveTag}
+            />
             
-            {/* Pagination */}
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                    <span className="font-medium">
-                      {Math.min(startIndex + ITEMS_PER_PAGE, filteredAccounts.length)}
-                    </span>{' '}
-                    of <span className="font-medium">{filteredAccounts.length}</span> results
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    >
-                      <span className="sr-only">Previous</span>
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          currentPage === i + 1
-                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    >
-                      <span className="sr-only">Next</span>
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredAccounts.length)}
+              totalItems={filteredAccounts.length}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       </main>
 
-      {showAddModal && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Add New Account
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Platform
-                    </label>
-                    <select
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      value={newAccount.platform}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, platform: e.target.value })
-                      }
-                    >
-                      <option value="">Select platform</option>
-                      {Object.keys(platformIcons).map((platform) => (
-                        <option key={platform} value={platform}>
-                          {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      value={newAccount.username || ''}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, username: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      value={newAccount.password || ''}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, password: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Status
-                    </label>
-                    <select
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      value={newAccount.status || 'New'}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, status: e.target.value })
-                      }
-                    >
-                      <option value="New">New</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Blocked">Blocked</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Country
-                    </label>
-                    <select
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      value={newAccount.country || ''}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, country: e.target.value })
-                      }
-                    >
-                      <option value="">Select country</option>
-                      {countryOptions.map((country) => (
-                        <option key={country.value} value={country.value}>
-                          {country.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      IP Address
-                    </label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      value={newAccount.ip || ''}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, ip: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Notes
-                    </label>
-                    <textarea
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      rows={3}
-                      value={newAccount.notes || ''}
-                      onChange={(e) =>
-                        setNewAccount({ ...newAccount, notes: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Tags (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="e.g., work, personal, social"
-                      value={selectedTags.join(', ')}
-                      onChange={(e) =>
-                        setSelectedTags(
-                          e.target.value.split(',').map((tag) => tag.trim())
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={handleAddAccount}
-                >
-                  Add Account
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AccountModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setCurrentAccount({});
+          setSelectedTags([]);
+          setEditingId(null);
+        }}
+        onSubmit={editingId ? handleEditAccount : handleAddAccount}
+        account={currentAccount}
+        setAccount={setCurrentAccount}
+        selectedTags={selectedTags}
+        setSelectedTags={setSelectedTags}
+        isEditing={!!editingId}
+      />
     </div>
   );
 }
-
-export default Dashboard;
